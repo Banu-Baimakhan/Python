@@ -7,3 +7,4 @@ def myfunc():
 myfunc()
 
 print("Python is " + x)
+#Create a variable outside of a function, and use it inside the function
