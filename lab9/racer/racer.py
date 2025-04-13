@@ -2,10 +2,10 @@ import pygame, sys
 from pygame.locals import *
 import random, time
 
-# Pygame кітапханасын бастау
+# Pygame-ді инициализациялау
 pygame.init()
 
-# FPS және сағат орнату
+# FPS пен таймер орнату
 FPS = 60
 clock = pygame.time.Clock()
 
@@ -16,30 +16,30 @@ GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 
-# Экран өлшемі мен бастапқы мәндер
+# Экран өлшемі және бастапқы мәндер
 W, H = 400, 600
 SPEED = 5
 SCORE = 0
 COINS = 0
 
-# Қаріптерді жүктеу және "Game Over" мәтінін дайындау
+# Қаріптерді жүктеп, "Game Over" мәтінін жасау
 font = pygame.font.Font("font_user.ttf", 60)
 font_small = pygame.font.Font("font_user.ttf", 20)
 game_over = font.render("Game Over", True, BLACK)
 
-# Монета иконкасын жүктеу және кішірейту
+# Монета белгішесін жүктеу және өлшемін өзгерту
 coin_icon = pygame.image.load("coin.png")
 coin_icon = pygame.transform.scale(coin_icon, (coin_icon.get_width()//20, coin_icon.get_height()//20))
 
-# Фон суретін жүктеу
+# Артқы фонды жүктеу
 bg = pygame.image.load("AnimatedStreet.png")
 
-# Экран терезесін жасау
+# Экран беті (терезе) жасау
 SC = pygame.display.set_mode((W, H))
 SC.fill(WHITE)
 pygame.display.set_caption("My game")
 
-# Жаудың (Enemy) классы
+# Жау класы
 class Enemy(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -47,7 +47,7 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = (random.randint(40, W-40), 0)
 
-    # Төменге қозғалады, экраннан шықса жаңартылады және ұпай қосылады
+    # Жауды төмен жылжыту, экраннан шықса қайта пайда болу және ұпай қосу
     def move(self):
         global SCORE
         self.rect.move_ip(0, SPEED)
@@ -56,7 +56,7 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.top = 0
             self.rect.center = (random.randint(40, W-40), 0)
 
-# Ойыншы (Player) классы
+# Ойыншы класы
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -64,7 +64,7 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = (160, 520)
 
-    # Солға немесе оңға қозғалу
+    # Солға немесе оңға жылжу
     def move(self):
         pressed_key = pygame.key.get_pressed()
         if self.rect.left > 1:
@@ -73,7 +73,7 @@ class Player(pygame.sprite.Sprite):
             if pressed_key[K_RIGHT]:
                 self.rect.move_ip(5, 0)
 
-# Монета (Coin) классы
+# Монета класы
 class Coin(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -82,14 +82,14 @@ class Coin(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = (random.randint(40, W-40), 0)
 
-    # Монета төмен түседі, экраннан шықса орны жаңартылады
+    # Монетаны төмен жылжыту, экраннан шықса қайта шығару
     def move(self):
         self.rect.move_ip(0, 5)
         if self.rect.top > 600:
             self.rect.top = 0
             self.rect.center = (random.randint(40, W-40), 0)
 
-# Нысандарды жасау
+# Ойыншы, жау және монета объектілерін жасау
 P1 = Player()
 E1 = Enemy()
 C1 = Coin()
@@ -106,40 +106,40 @@ all_sprites.add(P1)
 all_sprites.add(E1)
 all_sprites.add(C1)
 
-# Жылдамдықты арттыру оқиғасы (әзірге сөндірулі)
+# Жылдамдықты арттыру оқиғасы (әзірге өшірілген)
 '''INC_SPEED = pygame.USEREVENT + 1
 pygame.time.set_timer(INC_SPEED, 4000)'''
 
-# Монета санау есептегіші
+# Жиналған монета санына есептегіш
 count = 0
 
-# Ойын циклі
+# Негізгі ойын циклі
 while True:
     for event in pygame.event.get():
-        # Шығу оқиғасын тексеру
+        # Терезені жабу әрекетін тексеру
         if event.type == QUIT:
             pygame.quit()
             exit()
 
-    # Фонды салу
+    # Артқы фонды сызу
     SC.blit(bg, (0, 0))
 
-    # Монета иконкасы мен саны
+    # Монета белгішесі мен ағымдағы монета санын көрсету
     SC.blit(coin_icon, (10, 35))
     coins_v = font_small.render(f"X{str(COINS)}", True, BLACK)
     SC.blit(coins_v, (50, 50))
 
-    # Барлық спрайттарды жаңарту және салу
+    # Барлық спрайттарды жаңарту және экранға шығару
     for entity in all_sprites:
         SC.blit(entity.image, entity.rect)
         entity.move()
 
-    # Егер ойыншы жаумен соғылса
+    # Ойыншы мен жаудың соқтығысын тексеру
     if pygame.sprite.spritecollideany(P1, enemies):
         pygame.mixer.Sound('crash.wav').play()
         time.sleep(0.5)
 
-        # Game Over экраны
+        # Ойын аяқталған экран
         SC.fill(RED)
         SC.blit(game_over, (30, 250))
         result = font_small.render(f"Your result: {COINS}", True, BLACK)
@@ -149,25 +149,25 @@ while True:
         # Барлық спрайттарды жою және шығу
         for entity in all_sprites:
             entity.kill()
-        
+
         time.sleep(2)
         pygame.quit()
         sys.exit()
-    
-    # Монета саны >5 болса, жылдамдықты арттыру
+
+    # Монета жиналған сайын жылдамдықты арттыру
     if count > 5 and SPEED < 15:
         count = 0
         SPEED += 1
 
-    # Егер ойыншы монетаны алса
+    # Ойыншы мен монетаның соқтығысын тексеру
     if pygame.sprite.spritecollideany(P1, coins_group):
-        # Монета санына 1–4 аралығында қосу
+        # Кездейсоқ 1-ден 4-ке дейін монета қосу
         COINS += random.randint(1, 4)
         count += COINS
         for i in coins_group:
             i.rect.top = 0
             i.rect.center = (random.randint(40, W-40), 0)
 
-    # Экранды жаңарту және уақытты өлшеу
+    # Экранды жаңарту және кадрды күту
     pygame.display.update()
     clock.tick(FPS)
