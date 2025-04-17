@@ -1,0 +1,80 @@
+CREATE OR REPLACE FUNCTION get_record(pattern TEXT)
+RETURNS TABLE(id BIGINT, user_name TEXT, phone TEXT) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT pb.id, pb.user_name::TEXT, pb.phone::TEXT
+    FROM PhoneBook pb
+    WHERE pb.user_name ILIKE '%' || pattern || '%'
+       OR pb.phone ILIKE '%' || pattern || '%';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE upsert_user(new_user_name TEXT, new_phone TEXT)
+LANGUAGE plpgsql AS $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM PhoneBook WHERE user_name = new_user_name) THEN
+        UPDATE PhoneBook
+        SET phone = new_phone
+        WHERE user_name = new_user_name;
+    ELSE
+        INSERT INTO PhoneBook (user_name, phone)
+        VALUES (new_user_name, new_phone);
+    END IF;
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE deleting(name_del text, phone_del text)
+LANGUAGE plpgsql AS $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM PhoneBook WHERE user_name = name_del) THEN
+        DELETE FROM PhoneBook WHERE user_name = name_del AND phone = phone_del;
+    ELSE
+        RAISE NOTICE 'Does not exist';
+    END IF;
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE insert_many_users(user_data JSONB)
+LANGUAGE plpgsql AS $$
+DECLARE
+    user_record JSONB;
+    user_name TEXT;
+    user_phone TEXT;
+    incorrect_data JSONB := '[]'::JSONB;
+BEGIN
+    FOR user_record IN SELECT * FROM jsonb_array_elements(user_data)
+    LOOP
+        user_name := user_record->>'name';
+        user_phone := user_record->>'phone';
+
+        -- Проверка на валидность номера телефона (пример: должен быть 10 цифр)
+        IF user_phone !~ '^\d{10}$' THEN
+            incorrect_data := incorrect_data || jsonb_build_object('name', user_name, 'phone', user_phone);
+        ELSE
+            -- Вставка или обновление пользователя
+            IF EXISTS (SELECT 1 FROM PhoneBook WHERE PhoneBook.user_name = user_name) THEN
+                UPDATE PhoneBook
+                SET phone = user_phone
+                WHERE PhoneBook.user_name = user_name;
+            ELSE
+                INSERT INTO PhoneBook (user_name, phone)
+                VALUES (user_name, user_phone);
+            END IF;
+        END IF;
+    END LOOP;
+
+    -- Возврат некорректных данных
+    RAISE NOTICE 'Incorrect data: %', incorrect_data;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION get_paginated_records(limit_value INT, offset_value INT)
+RETURNS TABLE(id BIGINT, user_name TEXT, phone TEXT) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT pb.id, pb.user_name::TEXT, pb.phone::TEXT
+    FROM PhoneBook pb
+    ORDER BY pb.id
+    LIMIT limit_value OFFSET offset_value;
+END;
+$$ LANGUAGE plpgsql;
